@@ -1,0 +1,800 @@
+<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07040f"><title>VORTEX Arcade — игры без регистрации</title>
+<style>
+:root{--bg:#07040f;--card:#130b24;--line:#2d1b55;--tx:#f0eaff;--mut:#9b8fc4;--p:#a855f7;--n:#22d3ee}
+*{box-sizing:border-box;margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body{background:var(--bg);color:var(--tx);min-height:100vh;padding-bottom:env(safe-area-inset-bottom);overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;z-index:-1;background:radial-gradient(600px 400px at 15% 0,rgba(168,85,247,.28),transparent),radial-gradient(500px 400px at 90% 100%,rgba(34,211,238,.18),transparent);animation:drift 12s ease-in-out infinite alternate}
+@keyframes drift{to{transform:scale(1.12) translateY(-20px)}}
+[hidden]{display:none!important}
+.top{position:sticky;top:0;z-index:5;display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 16px;background:rgba(7,4,15,.85);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.logo{font-weight:900;letter-spacing:.2em;font-size:22px;text-decoration:none;background:linear-gradient(90deg,var(--p),var(--n));-webkit-background-clip:text;background-clip:text;color:transparent}
+#search{flex:1;max-width:320px;padding:10px 14px;background:#0b0618;border:1px solid var(--line);border-radius:12px;color:var(--tx);font-size:16px}
+#search:focus{outline:none;border-color:var(--n);box-shadow:0 0 10px var(--n)}
+main{padding:16px;max-width:1100px;margin:auto;animation:in .35s}
+@keyframes in{from{opacity:0;transform:translateY(8px)}}
+.hero{padding:18px 4px}.hero h1{font-size:clamp(22px,4vw,34px)}.hero p{color:var(--mut);margin-top:6px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:4px 0 12px}
+.chip{white-space:nowrap;padding:8px 14px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--tx);cursor:pointer;transition:.2s}
+.chip.on,.chip:hover{border-color:var(--p);box-shadow:0 0 12px rgba(168,85,247,.5)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.card{position:relative;overflow:hidden;display:flex;flex-direction:column;gap:6px;min-height:150px;padding:16px;text-decoration:none;color:#fff;background:linear-gradient(160deg,var(--c,#7c3aed) 0%,#0b0618 92%);border:1px solid rgba(255,255,255,.22);border-radius:14px;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 8px 20px rgba(0,0,0,.55);transition:transform .2s,box-shadow .2s;animation:in .4s both}.card::after{content:"";position:absolute;left:0;right:0;top:0;height:48%;background:linear-gradient(rgba(255,255,255,.28),rgba(255,255,255,0));pointer-events:none}.card:hover{transform:translateY(-6px) scale(1.03);box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 14px 30px var(--c,#7c3aed)}.card b{font-size:17px;text-shadow:0 2px 4px rgba(0,0,0,.6)}.cookie-wrap{position:relative;height:200px;width:100%;display:flex;align-items:center;justify-content:center}.cookie{font-size:130px;line-height:1;background:none;border:0;cursor:pointer;transition:transform .1s;filter:drop-shadow(0 10px 18px rgba(217,119,6,.55));-webkit-tap-highlight-color:transparent}.cookie.bump{transform:scale(.88) rotate(-6deg)}.float{position:absolute;top:18px;color:#fbbf24;font-weight:900;font-size:22px;text-shadow:0 2px 6px #000;animation:fl .7s forwards;pointer-events:none}@keyframes fl{to{transform:translateY(-70px);opacity:0}}.mstats{font-size:14px;color:var(--tx);text-align:center;background:#0b0618;border:1px solid var(--line);border-radius:10px;padding:8px 12px;max-width:100%}
+.card:hover{transform:translateY(-4px);border-color:var(--p);box-shadow:0 8px 24px rgba(168,85,247,.35)}
+.card .emo{font-size:52px;filter:drop-shadow(0 4px 6px rgba(0,0,0,.5))}.card small{color:rgba(255,255,255,.75);font-size:13px;line-height:1.35}
+.playbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.playbar h2{font-size:20px;text-align:center;flex:1}
+.btn{display:inline-block;padding:9px 14px;border-radius:12px;border:0;font-weight:700;cursor:pointer;text-decoration:none;color:#fff;background:linear-gradient(90deg,var(--p),var(--n))}
+.btn.ghost{background:none;border:1px solid var(--p);color:var(--tx)}
+.stage{display:flex;flex-direction:column;align-items:center;gap:12px;padding:16px;background:var(--card);border:1px solid var(--line);border-radius:18px;min-height:420px}
+.stage:fullscreen{border-radius:0;justify-content:center;background:var(--bg)}
+.cv{max-width:100%;height:auto;border-radius:12px;border:1px solid var(--line);touch-action:none;background:#0b0618}
+.gbox{width:100%}
+.gmsg{color:var(--mut);text-align:center;min-height:22px}
+.gbtn{padding:10px 16px;border-radius:12px;border:1px solid var(--p);background:var(--card);color:var(--tx);font-weight:700;cursor:pointer}
+.gbtn.big{padding:30px 50px;font-size:24px;background:linear-gradient(90deg,var(--p),var(--n));border:0;color:#fff}
+.gbtn:disabled{opacity:.45;cursor:default}
+.row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.pad{display:grid;grid-template-columns:repeat(3,56px);grid-template-rows:repeat(2,56px);gap:6px;justify-content:center;touch-action:none;user-select:none}
+.pbtn{border-radius:14px;border:1px solid var(--p);background:#1b0f33;color:var(--tx);font-size:20px;cursor:pointer}
+.pb-up{grid-column:2;grid-row:1}.pb-left{grid-column:1;grid-row:2}.pb-down{grid-column:2;grid-row:2}.pb-right{grid-column:3;grid-row:2}
+.pbtn:active{background:var(--p)}
+.pad2{height:200px;width:100%;max-width:420px;border-radius:18px;display:grid;place-items:center;font-size:22px;font-weight:800;cursor:pointer;background:#2a1b4d;user-select:none}
+.pad2.wait{background:#7a1d3b}.pad2.go{background:#16a34a;box-shadow:0 0 30px #16a34a}
+.ttt{display:grid;grid-template-columns:repeat(3,90px);gap:8px}
+.cell{height:90px;font-size:44px;font-weight:900;border-radius:14px;border:1px solid var(--line);background:#1b0f33;color:var(--tx);cursor:pointer}
+.cell.x{color:var(--n);text-shadow:0 0 10px var(--n)}.cell.o{color:var(--p);text-shadow:0 0 10px var(--p)}
+.mboard{display:grid;gap:4px;width:100%;max-width:360px}
+.mcell{aspect-ratio:1;border-radius:8px;border:1px solid var(--line);background:#2a1b4d;color:var(--tx);font-weight:800;cursor:pointer;font-size:clamp(12px,3vw,18px)}
+.mcell.open{background:#130b24}
+.simon{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:260px;max-width:100%}
+.spad{height:120px;border-radius:18px;border:0;opacity:.45;cursor:pointer;transition:opacity .15s,transform .15s}
+.spad.lit{opacity:1;transform:scale(1.04);box-shadow:0 0 24px currentColor}
+.mem{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;width:100%;max-width:380px}
+.mcard{aspect-ratio:1;font-size:28px;border-radius:12px;border:1px solid var(--line);background:#1b0f33;color:var(--tx);cursor:pointer;transition:transform .3s}
+.mcard.up{background:#2a1b4d;border-color:var(--n)}.mcard.done{opacity:.4}
+@media(max-width:600px){.top{flex-wrap:wrap}#search{max-width:none;width:100%}.playbar h2{font-size:16px}}
+@media(prefers-reduced-motion:reduce){*,body::before{animation:none!important;transition:none!important}}
+
+/* Печенька */
+.cookie-wrap{position:relative;display:grid;place-items:center;height:260px;width:100%}
+.cookie{width:min(200px,60vw);height:min(200px,60vw);border-radius:50%;border:0;font-size:min(150px,44vw);line-height:1;cursor:pointer;
+  background:radial-gradient(circle at 35% 30%,#fbd38d,#b45309 75%);box-shadow:0 0 40px rgba(251,191,36,.35),inset -12px -16px 0 rgba(0,0,0,.18);transition:transform .08s}
+.cookie:active,.cookie.hit{transform:scale(.92)}
+.plus{position:absolute;color:#fde68a;font-weight:900;font-size:22px;pointer-events:none;transform:translate(-50%,-50%);animation:floatup .7s forwards;text-shadow:0 0 8px #f59e0b}
+@keyframes floatup{to{transform:translate(-50%,-140%);opacity:0}}
+.gbtn.big2{padding:14px 26px;font-size:18px;background:linear-gradient(90deg,var(--p),var(--n));border:0;color:#fff}
+/* Тема Xbox */
+body.theme-xbox{--bg:#0d1117;--card:#1b1f24;--line:#2a3139;--p:#107c10;--n:#9bf00b;--tx:#ffffff;--mut:#9aa4ad}
+body.theme-xbox::before{background:radial-gradient(600px 400px at 15% 0,rgba(16,124,16,.35),transparent)}
+body.theme-xbox .card{border-radius:6px;border-top:3px solid var(--n)}
+body.theme-xbox .logo{background:none;-webkit-text-fill-color:#9bf00b;color:#9bf00b}
+body.theme-xbox .card .emo{filter:drop-shadow(0 0 6px rgba(155,240,11,.5))}
+/* Тема PS2 */
+body.theme-ps2{--bg:#0a1a40;--card:#13306b;--line:#3d6fd1;--p:#3b82f6;--n:#93c5fd;--tx:#ffffff;--mut:#b6c8ef}
+body.theme-ps2::before{background:linear-gradient(180deg,rgba(59,130,246,.35),transparent 60%)}
+body.theme-ps2 .card{background:linear-gradient(180deg,#1d4ed8,#0b2e7a);border:1px solid #93c5fd;border-radius:10px;box-shadow:inset 0 1px 0 rgba(255,255,255,.35)}
+body.theme-ps2 .top{background:linear-gradient(180deg,#1e3a8a,#0a1a40)}
+body.theme-ps2 .stage{background:linear-gradient(180deg,#1d4ed8,#0b2e7a)}
+body.theme-ps2 .logo{background:linear-gradient(180deg,#ffffff,#93c5fd);-webkit-background-clip:text;background-clip:text}
+.sel{padding:9px 10px;border-radius:12px;border:1px solid var(--line);background:#0b0618;color:var(--tx);font-size:14px}
+
+</style></head>
+<body class="theme-neon">
+<header class="top">
+  <a href="#" class="logo">VORTEX</a>
+  <input id="search" type="search" placeholder="Поиск игр..." autocomplete="off">
+  <select id="theme" class="sel" title="Стиль"><option value="neon">Неон</option><option value="xbox">Xbox</option><option value="ps2">PS2</option></select>
+</header>
+
+<main id="home">
+  <div id="chips" class="chips"></div>
+  <div id="grid" class="grid"></div>
+</main>
+
+<main id="play" hidden>
+  <div class="playbar">
+    <a href="#" id="back" class="btn ghost">← Все игры</a>
+    <h2 id="ptitle"></h2>
+    <button id="fs" class="btn ghost" title="На весь экран">⛶</button>
+  </div>
+  <div id="stage" class="stage"></div>
+</main>
+
+<script>window.BUNDLED=true;</script>
+<script>
+// Общие функции для всех игр. Не редактируй без нужды.
+// Каждая игра в папке games/ вызывает registerGame(id, описание).
+const rnd=n=>Math.floor(Math.random()*n);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function cv(el,w,h){const c=document.createElement('canvas');c.width=w;c.height=h;c.className='cv';el.appendChild(c);return c}
+function btn(parent,text,fn,cls=''){const b=document.createElement('button');b.className='gbtn '+cls;b.textContent=text;b.onclick=fn;parent.appendChild(b);return b}
+function msg(el,text){const m=document.createElement('div');m.className='gmsg';m.textContent=text;el.appendChild(m);return m}
+function row(el){const r=document.createElement('div');r.className='row';el.appendChild(r);return r}
+// Управление. allowed задаёт только нужные стрелки: остальные не показываются и не перехватываются.
+// cb(kind, pressed): kind = up|down|left|right
+function controls(el,cb,allowed=['up','down','left','right']){
+  const map={ArrowUp:'up',w:'up',W:'up',' ':'up',ArrowDown:'down',s:'down',S:'down',ArrowLeft:'left',a:'left',A:'left',ArrowRight:'right',d:'right',D:'right'};
+  const lab={up:'▲',left:'◀',right:'▶',down:'▼'};
+  const ok=k=>allowed.includes(k);
+  const kd=e=>{const k=map[e.key];if(k&&ok(k)){e.preventDefault();cb(k,true)}};
+  const ku=e=>{const k=map[e.key];if(k&&ok(k))cb(k,false)};
+  addEventListener('keydown',kd);addEventListener('keyup',ku);
+  const p=document.createElement('div');p.className='pad';
+  allowed.forEach(k=>{const b=document.createElement('button');b.className='pbtn pb-'+k;b.textContent=lab[k];
+    b.onpointerdown=e=>{e.preventDefault();cb(k,true)};
+    const off=()=>cb(k,false);b.onpointerup=off;b.onpointerleave=off;b.onpointercancel=off;p.appendChild(b)});
+  el.appendChild(p);
+  return()=>{removeEventListener('keydown',kd);removeEventListener('keyup',ku)};
+}
+
+
+const GAMES={};
+function registerGame(id,g){GAMES[id]=g}
+
+</script>
+<script>
+// Игра «Арканоид». Файл появится на сайте сам, как только лежит в папке games/.
+// Функции rnd, cv, btn, msg, row, controls и registerGame берутся из lib.js.
+registerGame('breakout', {title:'Арканоид',cat:'Аркады',emoji:'🧱',desc:'Разбей все кирпичи платформой',start(el){
+  const W=400,H=300,PW=70,bw=46,bh=16,gap=4,rows=5,cols=8;
+  const c=cv(el,W,H),g=c.getContext('2d');c.style.touchAction='none';
+  let bricks,px,ball,lives,score,state='wait';
+  const hold={l:false,r:false};
+  const reset=()=>{bricks=[];for(let r=0;r<rows;r++)for(let k=0;k<cols;k++)bricks.push({x:k*(bw+gap)+12,y:r*(bh+gap)+40,a:true,hue:r*50});
+    px=W/2-PW/2;ball={x:W/2,y:H-60,vx:3,vy:-3};lives=3;score=0;state='play'};
+  reset();state='wait';
+  const ctl=controls(el,(k,on)=>{
+    if(k==='left')hold.l=on;if(k==='right')hold.r=on;
+    if(on&&(k==='left'||k==='right')){if(state==='wait')state='play';else if(state!=='play')reset()}
+  },['left','right']);
+  c.onpointermove=e=>{const r=c.getBoundingClientRect();px=(e.clientX-r.left)*W/r.width-PW/2;if(state==='wait')state='play'};
+  const draw=()=>{
+    g.fillStyle='#0b0618';g.fillRect(0,0,W,H);
+    bricks.forEach(b=>{if(!b.a)return;g.fillStyle=`hsl(${b.hue},80%,60%)`;g.fillRect(b.x,b.y,bw,bh)});
+    g.fillStyle='#22d3ee';g.fillRect(px,H-30,PW,10);
+    g.fillStyle='#fff';g.beginPath();g.arc(ball.x,ball.y,6,0,7);g.fill();
+    g.font='14px sans-serif';g.fillText(`Очки: ${score}  Жизни: ${lives}`,8,H-8);
+    if(state!=='play'){g.fillStyle='rgba(0,0,0,.6)';g.fillRect(0,0,W,H);g.fillStyle='#fff';g.textAlign='center';g.font='bold 18px sans-serif';
+      const txt=state==='wait'?'Двигай мышью или стрелкой':state==='won'?'Победа! Жми стрелку для новой игры':'Проигрыш. Жми стрелку для новой игры';
+      g.fillText(txt,W/2,H/2);g.textAlign='left'}
+  };
+  const t=setInterval(()=>{
+    if(state!=='play'){draw();return}
+    if(hold.l)px-=6;if(hold.r)px+=6;px=clamp(px,0,W-PW);
+    ball.x+=ball.vx;ball.y+=ball.vy;
+    if(ball.x<5||ball.x>W-5)ball.vx*=-1;
+    if(ball.y<5)ball.vy*=-1;
+    if(ball.vy>0&&ball.y>H-38&&ball.y<H-24&&ball.x>px&&ball.x<px+PW){
+      ball.vy*=-1;ball.vx=clamp((ball.x-(px+PW/2))/8,-6,6)}
+    for(const b of bricks){
+      if(b.a&&ball.x>b.x&&ball.x<b.x+bw&&ball.y>b.y&&ball.y<b.y+bh){b.a=false;ball.vy*=-1;score+=10;break}
+    }
+    if(ball.y>H){lives--;if(lives<=0)state='lost';else ball={x:px+PW/2,y:H-60,vx:3,vy:-3}}
+    if(bricks.every(b=>!b.a))state='won';
+    draw();
+  },16);
+  draw();
+  return()=>{clearInterval(t);ctl();c.onpointermove=null};
+}});
+
+// Игра «Кликер». Файл появится на сайте сам, как только лежит в папке games/.
+// Функции rnd, cv, btn, msg, row, controls и registerGame берутся из lib.js.
+registerGame('clicker', {title:'Кликер',cat:'Кликеры',emoji:'🍪',desc:'Тапай печеньку и покупай помощников',start(el){
+  let n=0,cursors=0,grandma=0;const cur={cost:15,per:1},gma={cost:100,per:8};
+  const info=msg(el,'');
+  const wrap=document.createElement('div');wrap.className='cookie-wrap';el.appendChild(wrap);
+  const ck=document.createElement('button');ck.className='cookie';ck.textContent='🍪';wrap.appendChild(ck);
+  const tap=e=>{
+    n++;ck.classList.remove('hit');void ck.offsetWidth;ck.classList.add('hit');
+    const r=wrap.getBoundingClientRect();const f=document.createElement('span');f.className='plus';f.textContent='+1';
+    f.style.left=((e.clientX||r.left+r.width/2)-r.left)+'px';f.style.top=((e.clientY||r.top+r.height/2)-r.top)+'px';
+    wrap.appendChild(f);setTimeout(()=>f.remove(),700);draw();
+  };
+  ck.onpointerdown=tap;
+  const row1=row(el);
+  const bc=btn(row1,'',()=>{if(n>=cur.cost){n-=cur.cost;cursors++;cur.cost=Math.ceil(cur.cost*1.4);draw()}});
+  const bg=btn(row1,'',()=>{if(n>=gma.cost){n-=gma.cost;grandma++;gma.cost=Math.ceil(gma.cost*1.5);draw()}});
+  const draw=()=>{
+    const perSec=cursors*cur.per+grandma*gma.per;
+    info.textContent=`Печенек: ${n} · В секунду: ${perSec}`;
+    bc.textContent=`👆 Курсор (${cur.cost}) x${cursors}`;bc.disabled=n<cur.cost;
+    bg.textContent=`👵 Бабушка (${gma.cost}) x${grandma}`;bg.disabled=n<gma.cost;
+  };
+  const t=setInterval(()=>{n+=cursors*cur.per+grandma*gma.per;draw()},1000);
+  draw();
+  return()=>clearInterval(t);
+}});
+
+// Трасса: едешь по дороге, объезжаешь машины и столбы стрелками ◀ ▶.
+registerGame('highway', {
+  title:'Трасса', cat:'Аркады', emoji:'🏎️', desc:'Объезжай машины и столбы на трассе',
+  start(el){
+    const W=300,H=480,LW=W/3,PY=H-90,CELL=40;
+    const c=cv(el,W,H),g=c.getContext('2d');
+    const laneX=i=>LW*i+LW/2;
+    let lane,rows,dist,speed,over,nextRow,stripe,lastMove;
+    const reset=()=>{lane=1;rows=[];dist=0;speed=5;over=false;nextRow=0;stripe=0;lastMove=0};
+    reset();
+    const ctl=controls(el,(k,on)=>{
+      if(!on)return;
+      if(over){reset();return}
+      const now=performance.now();
+      if(now-lastMove<120)return;            // защита от залипания клавиши
+      if(k==='left'&&lane>0){lane--;lastMove=now}
+      if(k==='right'&&lane<2){lane++;lastMove=now}
+    },['left','right']);
+    const drawCar=(x,y,color,wind)=>{
+      g.fillStyle=color;g.beginPath();g.roundRect?g.roundRect(x-CELL*0.35,y-CELL/2,CELL*0.7,CELL,6):g.rect(x-CELL*0.35,y-CELL/2,CELL*0.7,CELL);g.fill();
+      g.fillStyle=wind;g.fillRect(x-CELL*0.25,y-CELL*0.3,CELL*0.5,CELL*0.22);
+      g.fillStyle='rgba(0,0,0,.35)';g.fillRect(x-CELL*0.3,y+CELL*0.3,CELL*0.6,4);
+    };
+    const drawPole=(x,y)=>{
+      g.fillStyle='#64748b';g.fillRect(x-5,y-CELL/2,10,CELL);
+      g.fillStyle='#ef4444';g.fillRect(x-5,y-CELL/2,10,8);
+      g.fillStyle='#fde047';g.fillRect(x-5,y-2,10,4);
+    };
+    const draw=()=>{
+      g.fillStyle='#14532d';g.fillRect(0,0,W,H);
+      g.fillStyle='#262631';g.fillRect(0,0,W,H);
+      // обочины
+      g.fillStyle='#e5e7eb';g.fillRect(4,0,4,H);g.fillRect(W-8,0,4,H);
+      // пунктир между полосами
+      g.fillStyle='#facc15';
+      for(let y=-60+stripe;y<H;y+=60){g.fillRect(LW-2,y,4,34);g.fillRect(2*LW-2,y,4,34)}
+      rows.forEach(r=>r.cells.forEach(cell=>{
+        const x=laneX(cell.lane);
+        if(cell.kind==='pole')drawPole(x,r.y);else drawCar(x,r.y,cell.color,'#bae6fd');
+      }));
+      drawCar(laneX(lane),PY,'#ef4444','#fecaca');
+      g.fillStyle='#fff';g.font='bold 16px sans-serif';g.fillText(Math.floor(dist/10)+' м',10,22);
+      if(over){g.fillStyle='rgba(0,0,0,.6)';g.fillRect(0,0,W,H);g.fillStyle='#fff';g.textAlign='center';g.font='bold 18px sans-serif';
+        g.fillText('Авария! Жми ◀ или ▶ для новой',W/2,H/2);g.textAlign='left'}
+    };
+    const colors=['#22c55e','#3b82f6','#f97316','#eab308','#e879f9'];
+    const t=setInterval(()=>{
+      if(over){draw();return}
+      dist+=speed;speed=Math.min(13,5+dist/3000);stripe=(stripe+speed)%60;
+      nextRow-=speed;
+      if(nextRow<=0){
+        // в ряду всегда есть свободная полоса
+        const blocked=Math.random()<0.5?1:2;
+        const lanes=[0,1,2].sort(()=>Math.random()-.5).slice(0,blocked);
+        rows.push({y:-CELL,cells:lanes.map(l=>({lane:l,kind:Math.random()<0.3?'pole':'car',color:colors[rnd(colors.length)]}))});
+        nextRow=CELL*2.6+rnd(60);
+      }
+      rows.forEach(r=>r.y+=speed);
+      rows=rows.filter(r=>r.y<H+CELL);
+      // столкновение: ряд совпадает с полосой игрока в зоне машины
+      if(rows.some(r=>Math.abs(r.y-PY)<CELL*0.8&&r.cells.some(cl=>cl.lane===lane)))over=true;
+      draw();
+    },16);
+    draw();
+    return()=>{clearInterval(t);ctl()};
+  }
+});
+
+// Игра «Память». Файл появится на сайте сам, как только лежит в папке games/.
+// Функции rnd, cv, btn, msg, row, controls и registerGame берутся из lib.js.
+registerGame('memory', {title:'Память',cat:'Головоломки',emoji:'🧠',desc:'Найди все пары',start(el){
+  const E=['🔥','⚡','💎','🎯','🚀','👾','🌙','🧪'];
+  let cards,open=[],found=0,moves=0,lock=false;
+  const info=msg(el,'');
+  const g=document.createElement('div');g.className='mem';el.appendChild(g);
+  const render=()=>{
+    g.innerHTML='';
+    cards.forEach((c,i)=>{const b=document.createElement('button');
+      const show=c.up||c.done;
+      b.className='mcard'+(show?' up':'')+(c.done?' done':'');
+      b.textContent=show?c.v:'?';b.onclick=()=>flip(i);g.appendChild(b)});
+    info.textContent=`Ходы: ${moves} · Пары: ${found}/8`+(found===8?' · Готово!':'');
+  };
+  const flip=i=>{
+    if(lock||cards[i].up||cards[i].done)return;
+    cards[i].up=true;open.push(i);render();
+    if(open.length===2){
+      moves++;lock=true;const[a,b]=open;
+      if(cards[a].v===cards[b].v){cards[a].done=cards[b].done=true;found++;open=[];lock=false;render()}
+      else setTimeout(()=>{cards[a].up=cards[b].up=false;open=[];lock=false;render()},800);
+    }
+  };
+  const init=()=>{cards=[...E,...E].sort(()=>Math.random()-.5).map(v=>({v,up:false,done:false}));open=[];found=0;moves=0;lock=false;render()};
+  init();
+  btn(el,'Заново',init);
+  return()=>{};
+}});
+
+// Игра «Сапёр». Файл появится на сайте сам, как только лежит в папке games/.
+// Функции rnd, cv, btn, msg, row, controls и registerGame берутся из lib.js.
+registerGame('mines', {title:'Сапёр',cat:'Головоломки',emoji:'💣',desc:'Открывай клетки и не подорвись',start(el){
+  const N=8,M=10;let grid,open,flag,over,first,flagMode=false;
+  const info=msg(el,'');
+  const board=document.createElement('div');board.className='mboard';board.style.gridTemplateColumns=`repeat(${N},1fr)`;el.appendChild(board);
+  const place=safe=>{
+    let k=0;while(k<M){const i=rnd(N*N);if(i===safe||grid[i].m)continue;grid[i].m=true;k++}
+    for(let i=0;i<N*N;i++){const r=Math.floor(i/N),c=i%N;let n=0;
+      for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){const rr=r+dr,cc=c+dc;if(rr>=0&&cc>=0&&rr<N&&cc<N&&grid[rr*N+cc].m)n++}
+      grid[i].n=n}
+  };
+  const reveal=i=>{
+    if(open[i]||flag[i])return;open[i]=true;
+    if(grid[i].n===0&&!grid[i].m){const r=Math.floor(i/N),c=i%N;
+      for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){const rr=r+dr,cc=c+dc;if(rr>=0&&cc>=0&&rr<N&&cc<N)reveal(rr*N+cc)}}
+  };
+  const check=()=>{if(grid.every((c,i)=>c.m||open[i])){over=true;info.textContent='Победа!'}};
+  const render=()=>{
+    board.innerHTML='';
+    for(let i=0;i<N*N;i++){
+      const b=document.createElement('button');b.className='mcell';
+      if(open[i]){b.classList.add('open');if(grid[i].m)b.textContent='💣';else if(grid[i].n)b.textContent=grid[i].n}
+      else if(flag[i])b.textContent='🚩';
+      b.onclick=()=>click(i);
+      b.oncontextmenu=e=>{e.preventDefault();if(over||open[i])return;flag[i]=!flag[i];render()};
+      board.appendChild(b);
+    }
+    if(!over)info.textContent=`Мин: ${M} · Флаг: ${flagMode?'вкл':'выкл'}`;
+  };
+  const click=i=>{
+    if(over)return;
+    if(flagMode){if(!open[i]){flag[i]=!flag[i];render()}return}
+    if(first){place(i);first=false}
+    if(flag[i]||open[i])return;
+    if(grid[i].m){over=true;grid.forEach((c,k)=>{if(c.m)open[k]=true});info.textContent='Бум! Игра окончена';render();return}
+    reveal(i);check();render();
+  };
+  const init=()=>{grid=Array(N*N).fill(0).map(()=>({m:false,n:0}));open=Array(N*N).fill(false);flag=Array(N*N).fill(false);over=false;first=true;render()};
+  const fb=row(el);
+  const flagBtn=btn(fb,'🚩 Флаг: выкл',()=>{flagMode=!flagMode;flagBtn.textContent=`🚩 Флаг: ${flagMode?'вкл':'выкл'}`;render()});
+  btn(fb,'Заново',init);
+  init();
+  return()=>{};
+}});
+
+// Игра «Пинг-понг». Файл появится на сайте сам, как только лежит в папке games/.
+// Функции rnd, cv, btn, msg, row, controls и registerGame берутся из lib.js.
+registerGame('pong', {title:'Пинг-понг',cat:'Спорт',emoji:'🏓',desc:'Отбивай мяч. Соперник думает',start(el){
+  const W=400,H=300,PH=60;const c=cv(el,W,H),g=c.getContext('2d');c.style.touchAction='none';
+  let py=H/2-PH/2,ay=H/2-PH/2,pS=0,aS=0,hold={up:false,down:false},err=0,spd=4;
+  let b={x:W/2,y:H/2,vx:4,vy:3};
+  const serve=d=>{spd=4;b={x:W/2,y:H/2,vx:d*spd,vy:Math.random()<.5?-3:3};err=(Math.random()-.5)*30};
+  // Предсказание: куда прилетит мяч с учётом отскоков от стен
+  const predict=()=>{let x=b.x,y=b.y,vx=b.vx,vy=b.vy;
+    for(let i=0;i<800&&x<W-16;i++){x+=vx;y+=vy;if(y<6){y=12-y;vy=-vy}if(y>H-6){y=2*(H-6)-y;vy=-vy}}
+    return y};
+  const ctl=controls(el,(k,on)=>{if(k==='up')hold.up=on;if(k==='down')hold.down=on},['up','down']);
+  c.onpointermove=e=>{const r=c.getBoundingClientRect();py=(e.clientY-r.top)*H/r.height-PH/2};
+  const draw=()=>{
+    g.fillStyle='#0b0618';g.fillRect(0,0,W,H);
+    g.fillStyle='#2d1b55';for(let y=0;y<H;y+=20)g.fillRect(W/2-1,y,2,10);
+    g.fillStyle='#22d3ee';g.fillRect(8,py,8,PH);
+    g.fillStyle='#a855f7';g.fillRect(W-16,ay,8,PH);
+    g.fillStyle='#fff';g.beginPath();g.arc(b.x,b.y,6,0,7);g.fill();
+    g.font='bold 28px sans-serif';g.textAlign='center';g.fillText(pS+'  :  '+aS,W/2,34);g.textAlign='left';
+  };
+  serve(1);
+  const t=setInterval(()=>{
+    if(hold.up)py-=6;if(hold.down)py+=6;
+    py=clamp(py,0,H-PH);
+    // ИИ: идёт туда, где мяч будет на его стороне, с небольшой ошибкой и ограниченной скоростью
+    const target=b.vx>0?predict()-PH/2+err:H/2-PH/2;
+    ay+=clamp((target-ay)*0.25,-4.6,4.6);ay=clamp(ay,0,H-PH);
+    b.x+=b.vx;b.y+=b.vy;
+    if(b.y<6){b.y=12-b.y;b.vy=-b.vy}
+    if(b.y>H-6){b.y=2*(H-6)-b.y;b.vy=-b.vy}
+    // удар игрока
+    if(b.vx<0&&b.x<16&&b.x>8&&b.y>py-4&&b.y<py+PH+4){
+      spd=Math.min(9,spd*1.05);b.vx=spd;b.x=16;b.vy+=((b.y-(py+PH/2))/PH)*3;err=(Math.random()-.5)*30}
+    // удар компьютера
+    if(b.vx>0&&b.x>W-16&&b.x<W-8&&b.y>ay-4&&b.y<ay+PH+4){
+      spd=Math.min(9,spd*1.05);b.vx=-spd;b.x=W-16;b.vy+=((b.y-(ay+PH/2))/PH)*3}
+    if(b.x<0){aS++;serve(1)}
+    if(b.x>W){pS++;serve(-1)}
+    draw();
+  },16);
+  draw();
+  return()=>{clearInterval(t);ctl();c.onpointermove=null};
+}});
+
+// Игра «Реакция». Файл появится на сайте сам, как только лежит в папке games/.
+// Функции rnd, cv, btn, msg, row, controls и registerGame берутся из lib.js.
+registerGame('reaction', {title:'Реакция',cat:'Аркады',emoji:'⚡',desc:'Жми на зелёный как можно быстрее',start(el){
+  const pad=document.createElement('div');pad.className='pad2';el.appendChild(pad);
+  const res=msg(el,'Пять раундов. Жди зелёного');
+  let times=[],st=0,to=null,round=0,phase='idle',alive=true;
+  const next=()=>{
+    if(!alive)return;
+    if(round>=5){const avg=Math.round(times.reduce((a,b)=>a+b,0)/times.length);
+      res.textContent=`Среднее: ${avg} мс · Лучшее: ${Math.min(...times)} мс`;pad.textContent='Сыграть ещё';pad.className='pad2';phase='end';return}
+    phase='idle';pad.className='pad2 wait';pad.textContent='Жди зелёного...';
+    to=setTimeout(()=>{if(!alive)return;phase='go';pad.className='pad2 go';pad.textContent='ЖМИ!';st=performance.now()},1000+rnd(3000));
+  };
+  pad.onpointerdown=()=>{
+    if(phase==='end'){times=[];round=0;next();return}
+    if(phase==='idle'){clearTimeout(to);res.textContent='Рано! Жди зелёного';next();return}
+    if(phase==='go'){const t=Math.round(performance.now()-st);times.push(t);round++;phase='result';res.textContent=`${t} мс`;setTimeout(next,800)}
+  };
+  next();
+  return()=>{alive=false;clearTimeout(to)};
+}});
+
+// Ритм-дорожки: три дорожки, ноты падают к линии. Жми в такт (клавиши A S D или кнопки внизу).
+registerGame('rhythm', {
+  title:'Ритм-дорожки', cat:'Музыка', emoji:'🎵', desc:'Жми в такт падающим нотам (A S D)',
+  start(el){
+    const W=300,H=460,HIT=H-80,LEAD=1500,SONG=60000,BEAT=60000/110;
+    const c=cv(el,W,H),g=c.getContext('2d');
+    const colors=['#22d3ee','#a855f7','#f472b6'];
+    const info=msg(el,'Нажми «Старт», затем жми A S D или кнопки внизу');
+    let notes=[],t0=0,running=false,score=0,combo=0,best=0,timer=null;
+    let flash=[0,0,0],fx=null,fxT=0;
+    const build=()=>{
+      notes=[];
+      for(let b=2;b*BEAT<SONG;b++){
+        const t=b*BEAT,r=Math.random();
+        if(r<0.5)notes.push({t,lane:rnd(3),hit:false});
+        else if(r<0.72){const a=rnd(3);const bb=(a+1+rnd(2))%3;notes.push({t,lane:a,hit:false},{t,lane:bb,hit:false})}
+        if(Math.random()<0.3)notes.push({t:t+BEAT/2,lane:rnd(3),hit:false});
+      }
+    };
+    const now=()=>performance.now()-t0;
+    const label=(txt)=>{fx=txt;fxT=now()};
+    const judge=lane=>{
+      if(!running)return;
+      flash[lane]=8;
+      const n0=now();let target=null,bd=Infinity;
+      for(const n of notes){if(n.hit||n.lane!==lane)continue;const d=Math.abs(n.t-n0);if(d<bd){bd=d;target=n}}
+      if(!target||bd>200){combo=0;label('Промах');return}
+      target.hit=true;
+      const pts=bd<50?300:bd<100?200:100;
+      combo++;
+      score+=Math.round(pts*(1+Math.min(combo,50)/25));
+      label(bd<50?'Идеально!':bd<100?'Отлично':'Хорошо');
+    };
+    const keys={a:0,A:0,s:1,S:1,d:2,D:2};
+    const kd=e=>{if(e.repeat)return;const l=keys[e.key];if(l!==undefined){e.preventDefault();judge(l)}};
+    addEventListener('keydown',kd);
+    const pads=document.createElement('div');pads.className='row';el.appendChild(pads);
+    ['A','S','D'].forEach((lab,i)=>{const b=document.createElement('button');b.className='pad2';
+      b.style.cssText='height:90px;width:90px;font-size:22px;padding:0;background:'+colors[i]+';color:#0b0618;border-radius:18px;';
+      b.textContent=lab;b.onpointerdown=e=>{e.preventDefault();judge(i)};pads.appendChild(b)});
+    const update=()=>{
+      const n0=now();
+      for(const n of notes){if(!n.hit&&n0>n.t+200){n.hit=true;combo=0;label('Мимо')}}
+      if(n0>SONG+1000){finish()}
+    };
+    const draw=()=>{
+      g.fillStyle='#0b0618';g.fillRect(0,0,W,H);
+      for(let i=0;i<3;i++){
+        const x=i*100;
+        g.fillStyle=flash[i]>0?'rgba(255,255,255,.12)':'rgba(255,255,255,.03)';g.fillRect(x,0,100,H);
+        g.strokeStyle='#2d1b55';g.strokeRect(x,0,100,H);
+      }
+      const n0=now();
+      notes.forEach(n=>{
+        if(n.hit)return;
+        const y=HIT-(n.t-n0)*(HIT/LEAD);
+        if(y<-20||y>H+20)return;
+        g.fillStyle=colors[n.lane];g.fillRect(n.lane*100+10,y-8,80,16);
+      });
+      g.fillStyle='#fff';g.fillRect(0,HIT,W,3);
+      flash=flash.map(v=>Math.max(0,v-1));
+      g.font='bold 20px sans-serif';g.fillText(String(score),10,26);
+      g.font='14px sans-serif';g.fillText('Комбо: '+combo+'  Рекорд: '+best,10,46);
+      if(fx&&n0-fxT<600){g.globalAlpha=1-(n0-fxT)/600;g.fillStyle='#fff';g.textAlign='center';g.font='bold 20px sans-serif';g.fillText(fx,W/2,HIT-40);g.textAlign='left';g.globalAlpha=1}
+    };
+    const finish=()=>{
+      running=false;clearInterval(timer);timer=null;
+      best=Math.max(best,score);
+      info.textContent=`Песня окончена. Очки: ${score}. Рекорд: ${best}. Нажми «Старт»`;
+    };
+    const startSong=()=>{
+      clearInterval(timer);
+      build();score=0;combo=0;running=true;fx=null;t0=performance.now();
+      info.textContent='Играем! Жми в такт';
+      timer=setInterval(()=>{update();draw()},16);
+    };
+    const sb=row(el);btn(sb,'Старт',startSong,'big2');
+    draw();
+    return()=>{clearInterval(timer);removeEventListener('keydown',kd)};
+  }
+});
+
+// Бегун 2D. Прыжок стрелкой ▲ или пробелом. Препятствия идут с одинаковыми промежутками.
+registerGame('runner', {
+  title:'Бегун', cat:'Аркады', emoji:'🏃', desc:'Прыгай через препятствия (▲ или пробел)',
+  start(el){
+    const W=480,H=200,G=170,PS=34,PX=60,PW=26;
+    const c=cv(el,W,H),g=c.getContext('2d');
+    let jy,vy,obs,fr,over,jumpReq,speed,nextIn;
+    const reset=()=>{jy=0;vy=0;obs=[];fr=0;over=false;jumpReq=false;speed=6;nextIn=120};
+    reset();
+    const ctl=controls(el,(k,on)=>{
+      if(k!=='up')return;
+      if(over){if(on)reset();return}
+      if(on)jumpReq=true;
+    },['up']);
+    const draw=()=>{
+      const sky=g.createLinearGradient(0,0,0,G);sky.addColorStop(0,'#07040f');sky.addColorStop(1,'#2e1065');
+      g.fillStyle=sky;g.fillRect(0,0,W,G);
+      g.fillStyle='#120a24';g.fillRect(0,G,W,H-G);
+      g.fillStyle='#a855f7';g.fillRect(0,G,W,2);
+      // пролетающие полосы земли
+      const off=(fr*speed)%40;g.fillStyle='rgba(168,85,247,.25)';
+      for(let x=-off;x<W;x+=40)g.fillRect(x,G+8,20,3);
+      // препятствия
+      obs.forEach(o=>{
+        g.fillStyle='#c084fc';g.fillRect(o.x,G-o.h,o.w,o.h);
+        g.fillStyle='#f0abfc';g.fillRect(o.x,G-o.h,o.w,5);
+      });
+      // игрок
+      const top=G-PS-jy;
+      g.fillStyle='rgba(0,0,0,.4)';g.beginPath();g.ellipse(PX+PW/2,G,PW/2*(1-jy/200),3,0,0,7);g.fill();
+      g.fillStyle='#22d3ee';g.fillRect(PX,top,PW,PS);
+      g.fillStyle='#a5f3fc';g.fillRect(PX,top,PW,5);
+      g.fillStyle='#fff';g.font='14px sans-serif';g.fillText('Очки: '+Math.floor(fr/6),8,18);
+      if(over){g.fillStyle='rgba(0,0,0,.6)';g.fillRect(0,0,W,H);g.fillStyle='#fff';g.textAlign='center';g.font='bold 18px sans-serif';
+        g.fillText('Конец. Нажми ▲ для новой игры',W/2,H/2);g.textAlign='left'}
+    };
+    const t=setInterval(()=>{
+      if(over){draw();return}
+      fr++;speed=Math.min(12,6+fr/900);
+      if(jumpReq&&jy===0)vy=10;
+      jumpReq=false;
+      jy+=vy;vy-=0.55;if(jy<0){jy=0;vy=0}
+      nextIn-=speed;
+      if(nextIn<=0){
+        const h=24+rnd(24),w=18+rnd(14);
+        obs.push({x:W+10,w,h});
+        if(Math.random()<0.3)obs.push({x:W+10+w+70,w:18+rnd(10),h:24+rnd(20)}); // иногда пара
+        nextIn=200+rnd(120);
+      }
+      obs.forEach(o=>o.x-=speed);
+      obs=obs.filter(o=>o.x>-40);
+      // столкновение: игрок ниже верхней точки препятствия и стоит в его полосе
+      if(obs.some(o=>PX<o.x+o.w&&PX+PW>o.x&&jy<o.h-4))over=true;
+      draw();
+    },16);
+    draw();
+    return()=>{clearInterval(t);ctl()};
+  }
+});
+
+// Игра «Саймон». Файл появится на сайте сам, как только лежит в папке games/.
+// Функции rnd, cv, btn, msg, row, controls и registerGame берутся из lib.js.
+registerGame('simon', {title:'Саймон',cat:'Головоломки',emoji:'🎵',desc:'Запомни и повтори последовательность',start(el){
+  const colors=['#22c55e','#ef4444','#3b82f6','#eab308'];
+  const grid=document.createElement('div');grid.className='simon';el.appendChild(grid);
+  const pads=colors.map((c,i)=>{const b=document.createElement('button');b.className='spad';b.style.background=c;b.style.color=c;b.onpointerdown=()=>press(i);grid.appendChild(b);return b});
+  const info=msg(el,'Нажми «Старт»');
+  let seq=[],inp=[],busy=true,timers=[];
+  const at=(f,ms)=>timers.push(setTimeout(f,ms));
+  const flash=i=>{pads[i].classList.add('lit');at(()=>pads[i].classList.remove('lit'),350)};
+  const play=()=>{
+    busy=true;info.textContent=`Уровень ${seq.length}`;
+    seq.forEach((v,k)=>at(()=>flash(v),600+k*550));
+    at(()=>{busy=false;inp=[];info.textContent='Твой ход'},600+seq.length*550);
+  };
+  const press=i=>{
+    if(busy||!seq.length)return;
+    flash(i);inp.push(i);const k=inp.length-1;
+    if(inp[k]!==seq[k]){busy=true;info.textContent=`Ошибка на уровне ${seq.length}. Нажми «Старт»`;seq=[];return}
+    if(inp.length===seq.length){busy=true;info.textContent='Верно!';at(()=>{seq.push(rnd(4));play()},800)}
+  };
+  btn(el,'Старт',()=>{timers.forEach(clearTimeout);timers=[];seq=[rnd(4)];play()});
+  return()=>timers.forEach(clearTimeout);
+}});
+
+// Игра «Змейка». Файл появится на сайте сам, как только лежит в папке games/.
+// Функции rnd, cv, btn, msg, row, controls и registerGame берутся из lib.js.
+registerGame('snake', {title:'Змейка',cat:'Аркады',emoji:'🐍',desc:'Собирай еду и не врезайся',start(el){
+  const N=20,S=20;const c=cv(el,N*S,N*S),g=c.getContext('2d');
+  let s,dir,nd,f,score,over,t;
+  const spawn=()=>{do{f={x:rnd(N),y:rnd(N)}}while(s.some(p=>p.x===f.x&&p.y===f.y))};
+  const reset=()=>{s=[{x:10,y:10},{x:9,y:10}];dir=nd={x:1,y:0};score=0;over=false;spawn()};
+  const ctl=controls(el,(k,on)=>{
+    if(!on)return;
+    if(over){reset();return}
+    const v={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]}[k];
+    if(v[0]===-dir.x&&v[1]===-dir.y)return;
+    nd={x:v[0],y:v[1]};
+  });
+  const draw=()=>{
+    g.fillStyle='#0b0618';g.fillRect(0,0,N*S,N*S);
+    g.fillStyle='#ff4d8d';g.beginPath();g.arc(f.x*S+S/2,f.y*S+S/2,S/3,0,7);g.fill();
+    s.forEach((p,i)=>{g.fillStyle=i?'#a855f7':'#22d3ee';g.fillRect(p.x*S+2,p.y*S+2,S-4,S-4)});
+    g.fillStyle='#fff';g.font='14px sans-serif';g.fillText('Очки: '+score,8,18);
+    if(over){g.fillStyle='rgba(0,0,0,.6)';g.fillRect(0,0,N*S,N*S);g.fillStyle='#fff';
+      g.font='bold 18px sans-serif';g.textAlign='center';g.fillText('Конец игры. Нажми стрелку',N*S/2,N*S/2);g.textAlign='left'}
+  };
+  const tick=()=>{
+    if(over)return;
+    dir=nd;const h={x:s[0].x+dir.x,y:s[0].y+dir.y};
+    if(h.x<0||h.y<0||h.x>=N||h.y>=N||s.some(p=>p.x===h.x&&p.y===h.y)){over=true}
+    else{s.unshift(h);if(h.x===f.x&&h.y===f.y){score++;spawn()}else s.pop()}
+    draw();
+  };
+  reset();draw();t=setInterval(tick,120);
+  return()=>{clearInterval(t);ctl()};
+}});
+
+// Игра «Фондовый рынок». Файл появится на сайте сам, как только лежит в папке games/.
+// Функции rnd, cv, btn, msg, row, controls и registerGame берутся из lib.js.
+registerGame('stock', {title:'Фондовый рынок',cat:'Экономика',emoji:'📈',desc:'5 минут, 100 V. Покупай дешевле, продавай дороже',start(el){
+  const DUR=300,W=480,H=200;const c=cv(el,W,H),g=c.getContext('2d');
+  let cash=100,sh=0,price=100,hist=[100],t=0,left=DUR,run=false,timer=null;
+  let best=0;try{best=+(localStorage.getItem('vx_stock_best')||0)}catch(e){}
+  const info=msg(el,'');
+  const fmt=s=>`${String(Math.floor(s/60)).padStart(2,'0')}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+  const FEE=0.03;
+  const value=()=>Math.round(cash+sh*price*(1-FEE));
+  const draw=()=>{
+    g.fillStyle='#0b0618';g.fillRect(0,0,W,H);
+    const lo=Math.min(...hist,price)*0.95,hi=Math.max(...hist,price)*1.05;
+    const y=v=>H-10-(v-lo)/(hi-lo||1)*(H-20);
+    g.strokeStyle='#2d1b55';g.beginPath();g.moveTo(0,y(100));g.lineTo(W,y(100));g.stroke();
+    g.strokeStyle=price>=100?'#22c55e':'#ef4444';g.lineWidth=2;g.beginPath();
+    hist.forEach((v,i)=>{const x=i*(W/Math.max(1,hist.length-1));i?g.lineTo(x,y(v)):g.moveTo(x,y(v))});g.stroke();g.lineWidth=1;
+    g.fillStyle='#fff';g.font='bold 16px sans-serif';g.fillText(`Цена: ${price.toFixed(1)} V`,8,18);
+  };
+  const refresh=()=>{
+    info.textContent=`Баланс: ${Math.floor(cash)} V · Акций: ${sh} · Осталось: ${fmt(left)} · Итог: ${value()} V · Рекорд: ${best} V`;
+    draw();
+  };
+  const tick=()=>{
+    t+=0.25;
+    const trend=100*(1+0.38*Math.sin(t*2*Math.PI/60));  // рынок качается циклами примерно по 60 сек
+    const noise=(Math.random()-0.5)*0.05*price;          // случайные колебания
+    const bots=(Math.random()<0.5?1:-1)*Math.random()*0.02*price; // боты покупают и продают
+    price=Math.max(5,price+(trend-price)*0.12+noise+bots);
+    hist.push(price);if(hist.length>240)hist.shift();
+    left=Math.max(0,DUR-t);
+    if(left<=0)finish();
+    refresh();
+  };
+  const finish=()=>{
+    run=false;clearInterval(timer);timer=null;
+    cash+=sh*price*(1-FEE);sh=0;
+    const v=Math.round(cash);
+    if(v>best){best=v;try{localStorage.setItem('vx_stock_best',String(best))}catch(e){}}
+    info.textContent=`Время вышло! Итог: ${v} V · Рекорд: ${best} V`;
+    draw();
+  };
+  const buy=n=>{if(!run)return;const q=Math.min(n,Math.floor(cash/(price*(1+FEE))));if(q<=0)return;cash-=q*price*(1+FEE);sh+=q;refresh()};
+  const sell=n=>{if(!run)return;const q=Math.min(n,sh);if(q<=0)return;cash+=q*price*(1-FEE);sh-=q;refresh()};
+  const start=()=>{
+    cash=100;sh=0;price=100;hist=[100];t=0;left=DUR;run=true;
+    clearInterval(timer);timer=setInterval(tick,250);refresh();
+  };
+  const b1=row(el);
+  btn(b1,'Старт (5 минут)',start,'big2');
+  const b2=row(el);
+  btn(b2,'Купить 1',()=>buy(1));
+  btn(b2,'Купить на всё',()=>buy(Infinity));
+  btn(b2,'Продать 1',()=>sell(1));
+  btn(b2,'Продать всё',()=>sell(Infinity));
+  info.textContent='Нажми «Старт». У тебя 100 V на 5 минут. Комиссия брокера 3% за сделку.';
+  draw();
+  return()=>clearInterval(timer);
+}});
+
+// Игра «Крестики-нолики». Файл появится на сайте сам, как только лежит в папке games/.
+// Функции rnd, cv, btn, msg, row, controls и registerGame берутся из lib.js.
+registerGame('ttt', {title:'Крестики-нолики',cat:'Настольные',emoji:'❌',desc:'Играй против ИИ',start(el){
+  let b=Array(9).fill(''),over=false;
+  const W=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+  const win=(p,bd)=>W.some(l=>l.every(i=>bd[i]===p));
+  const minimax=(bd,turn)=>{
+    if(win('O',bd))return{s:10};if(win('X',bd))return{s:-10};if(bd.every(Boolean))return{s:0};
+    let best=turn==='O'?{s:-Infinity}:{s:Infinity};
+    bd.forEach((v,i)=>{if(v)return;bd[i]=turn;const r=minimax(bd,turn==='O'?'X':'O');bd[i]='';
+      if(turn==='O'?r.s>best.s:r.s<best.s)best={s:r.s,i}});
+    return best;
+  };
+  const info=msg(el,'Ты — X. Твой ход.');
+  const grid=document.createElement('div');grid.className='ttt';el.appendChild(grid);
+  const cells=b.map((_,i)=>{const x=document.createElement('button');x.className='cell';x.onclick=()=>move(i);grid.appendChild(x);return x});
+  const render=()=>cells.forEach((c,i)=>{c.textContent=b[i];c.className='cell '+(b[i]==='X'?'x':b[i]==='O'?'o':'')});
+  const end=()=>{
+    render();
+    if(win('X',b)){over=true;info.textContent='Ты победил!';return true}
+    if(win('O',b)){over=true;info.textContent='Победил ИИ';return true}
+    if(b.every(Boolean)){over=true;info.textContent='Ничья';return true}
+    return false;
+  };
+  const move=i=>{
+    if(over||b[i])return;
+    b[i]='X';if(end())return;
+    const m=minimax(b.slice(),'O');b[m.i]='O';end();
+  };
+  btn(el,'Новая игра',()=>{b=Array(9).fill('');over=false;info.textContent='Ты — X. Твой ход.';render()});
+  render();
+  return()=>{};
+}});
+
+</script>
+<script>
+// Каталог, загрузка игр и открытие. Игры лежат в папке games/, каждая в своём файле.
+const $=s=>document.querySelector(s);
+let cleanup=null, cat='Все', query='';
+
+// Запасной список на случай, если список файлов с GitHub не загрузился (например, офлайн).
+// Новые игры и так находятся сами через GitHub; этот список используется только как запасной.
+const FALLBACK_GAMES=['breakout','clicker','highway','memory','mines','pong','reaction','rhythm','runner','simon','snake','stock','ttt'];
+
+function repoInfo(){
+  const host=location.hostname, parts=location.pathname.split('/').filter(Boolean);
+  const owner=host.split('.')[0];
+  const repo=parts.length?parts[0]:owner+'.github.io';
+  return {owner,repo};
+}
+async function listGameFiles(){
+  const {owner,repo}=repoInfo();
+  try{
+    const r=await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/games`);
+    if(!r.ok)throw new Error('api '+r.status);
+    const list=await r.json();
+    return list.filter(f=>f.name.endsWith('.js')).map(f=>f.name);
+  }catch(e){
+    return FALLBACK_GAMES.map(n=>n+'.js');
+  }
+}
+function loadScript(src){
+  return new Promise(res=>{const s=document.createElement('script');s.src=src;s.onload=s.onerror=()=>res();document.body.appendChild(s)});
+}
+async function loadGames(){
+  if(window.BUNDLED)return;                  // одиночный HTML: все игры уже внутри
+  const files=await listGameFiles();
+  await Promise.all(files.map(f=>loadScript('games/'+f)));
+}
+
+const CATS=()=>['Все',...new Set(Object.values(GAMES).map(g=>g.cat))];
+
+function renderChips(){
+  const box=$('#chips');box.innerHTML='';
+  CATS().forEach(c=>{const b=document.createElement('button');b.className='chip'+(c===cat?' on':'');b.textContent=c;
+    b.onclick=()=>{cat=c;renderChips();renderGrid()};box.appendChild(b)});
+}
+function renderGrid(){
+  const q=query.trim().toLowerCase();
+  const list=Object.entries(GAMES)
+    .filter(([,g])=>(cat==='Все'||g.cat===cat)&&(!q||g.title.toLowerCase().includes(q)||g.desc.toLowerCase().includes(q)))
+    .sort((a,b)=>a[1].title.localeCompare(b[1].title,'ru'));
+  const grid=$('#grid');grid.innerHTML='';
+  if(!Object.keys(GAMES).length){grid.innerHTML='<p style="color:var(--mut)">Игры не загрузились. Проверь, что папка games/ загружена на GitHub.</p>';return}
+  if(!list.length){grid.innerHTML='<p style="color:var(--mut)">Ничего не найдено</p>';return}
+  list.forEach(([id,g])=>{const a=document.createElement('a');a.className='card';a.href='#'+id;
+    a.innerHTML=`<div class="emo">${g.emoji}</div><b></b><small></small>`;
+    a.querySelector('b').textContent=g.title;a.querySelector('small').textContent=g.desc;
+    a.onclick=e=>{e.preventDefault();openGame(id)};
+    grid.appendChild(a)});
+}
+function show(id){
+  if(cleanup){try{cleanup()}catch(e){}cleanup=null}
+  if(!id||!GAMES[id]){$('#home').hidden=false;$('#play').hidden=true;return}
+  const g=GAMES[id];
+  $('#home').hidden=true;$('#play').hidden=false;
+  $('#ptitle').textContent=g.emoji+' '+g.title;
+  const stage=$('#stage');stage.innerHTML='';
+  try{
+    const c=g.start(stage);cleanup=typeof c==='function'?c:null;
+  }catch(e){stage.textContent='Не удалось запустить игру: '+e.message}
+}
+function openGame(id){try{history.replaceState(null,'','#'+id)}catch(e){}show(id)}
+function goHome(){try{history.replaceState(null,'',location.pathname)}catch(e){}show('')}
+
+$('#theme').onchange=e=>{document.body.className='theme-'+e.target.value};
+$('#back').onclick=e=>{e.preventDefault();goHome()};
+$('#search').oninput=e=>{query=e.target.value;renderGrid()};
+$('#fs').onclick=()=>{const el=$('#stage');
+  if(document.fullscreenElement)document.exitFullscreen();
+  else if(el.requestFullscreen)el.requestFullscreen().catch(()=>{});};
+addEventListener('hashchange',()=>show(location.hash.slice(1)));
+
+(async()=>{
+  await loadGames();
+  renderChips();renderGrid();
+  show(location.hash.slice(1));
+})();
+
+</script>
+</body></html>
