@@ -79,6 +79,20 @@ body.theme-ps2 .stage{background:linear-gradient(180deg,#1d4ed8,#0b2e7a)}
 body.theme-ps2 .logo{background:linear-gradient(180deg,#ffffff,#93c5fd);-webkit-background-clip:text;background-clip:text}
 .sel{padding:9px 10px;border-radius:12px;border:1px solid var(--line);background:#0b0618;color:var(--tx);font-size:14px}
 
+/* Block Blast */
+.bb{display:grid;gap:3px;padding:8px;background:#0b0618;border:1px solid var(--line);border-radius:14px}
+.bcell{width:40px;height:40px;border-radius:6px;border:1px solid #2d1b55;background:#130b24;cursor:pointer;padding:0}
+.piece{display:grid;gap:2px;padding:8px;border:1px solid var(--line);border-radius:12px;background:#130b24;cursor:pointer}
+.piece.sel{border-color:var(--n);box-shadow:0 0 12px var(--n)}
+.piece.used{opacity:.2;cursor:default}
+.pc{width:14px;height:14px;border-radius:3px}
+/* 2048 */
+.g2048{display:grid;grid-template-columns:repeat(4,78px);gap:8px;padding:10px;background:#2d1b55;border-radius:14px;touch-action:none}
+.tile{width:78px;height:78px;border-radius:10px;display:grid;place-items:center;font-weight:900;color:#fff;transition:background .15s}
+/* Крот */
+.mole-grid{display:grid;grid-template-columns:repeat(3,96px);gap:10px}
+.mole-grid .mcell{aspect-ratio:1;font-size:44px;border-radius:50%}
+
 </style></head>
 <body class="theme-neon">
 <header class="top">
@@ -134,6 +148,91 @@ function registerGame(id,g){GAMES[id]=g}
 
 </script>
 <script>
+// Тренер прицела: кликни 20 мишеней как можно быстрее. Показываем среднее время реакции.
+registerGame('aim', {
+  title:'Тренер прицела', cat:'Аркады', emoji:'🎯', desc:'Кликни 20 мишеней как можно быстрее',
+  start(el){
+    const W=360,H=320;
+    const area=document.createElement('div');
+    area.style.cssText=`width:${W}px;height:${H}px;max-width:100%;position:relative;background:#0b0618;border:1px solid var(--line);border-radius:14px;overflow:hidden`;
+    el.appendChild(area);
+    const info=msg(el,'Нажми «Старт», затем жми на мишени');
+    let n=0,times=[],spawnT=0,run=false;
+    const spawn=()=>{
+      area.innerHTML='';
+      const s=30+rnd(30),b=document.createElement('button');
+      b.style.cssText=`position:absolute;width:${s}px;height:${s}px;border-radius:50%;border:0;cursor:pointer;left:${rnd(W-s)}px;top:${rnd(H-s)}px;background:radial-gradient(circle,#fff 0 15%,#ef4444 16% 60%,#fff 61% 70%,#ef4444 71%)`;
+      b.onpointerdown=()=>{times.push(performance.now()-spawnT);n++;info.textContent=`Мишень ${n} из 20`;if(n>=20)finish();else spawn()};
+      area.appendChild(b);spawnT=performance.now();
+    };
+    const finish=()=>{
+      run=false;area.innerHTML='';
+      const avg=Math.round(times.reduce((a,b)=>a+b,0)/times.length),best=Math.round(Math.min(...times));
+      info.textContent=`Среднее: ${avg} мс · Лучшее: ${best} мс`;
+    };
+    const start=()=>{n=0;times=[];run=true;spawn();info.textContent='Мишень 0 из 20'};
+    btn(el,'Старт',start,'big2');
+    return()=>{run=false;area.innerHTML=''};
+  }
+});
+
+// Block Blast: выбери фигуру снизу и нажми на клетку поля. Заполненные линии исчезают.
+registerGame('blockblast', {
+  title:'Block Blast', cat:'Головоломки', emoji:'🟦', desc:'Ставь фигуры и очищай линии',
+  start(el){
+    const N=8;
+    const SHAPES=[[[1]],[[1,1]],[[1],[1]],[[1,1,1]],[[1],[1],[1]],[[1,1],[1,1]],[[1,1,1],[0,1,0]],[[1,0],[1,1]],[[1,1,1,1]],[[1,1,0],[0,1,1]],[[1,1,1],[1,0,0]]];
+    const COLS=['#22d3ee','#a855f7','#f472b6','#22c55e','#eab308','#f97316','#3b82f6'];
+    let grid,tray,sel=null,score=0,over=false;
+    const info=msg(el,'');
+    const board=document.createElement('div');board.className='bb';
+    board.style.gridTemplateColumns=`repeat(${N},40px)`;el.appendChild(board);
+    const trayEl=document.createElement('div');trayEl.className='row';el.appendChild(trayEl);
+    const fitsAt=(m,r0,c0)=>m.every((row,i)=>row.every((v,j)=>!v||(r0+i>=0&&r0+i<N&&c0+j>=0&&c0+j<N&&!grid[r0+i][c0+j])));
+    const canPlaceAny=m=>{for(let r=0;r<N;r++)for(let c=0;c<N;c++)if(fitsAt(m,r,c))return true;return false};
+    const newTray=()=>{tray=[0,1,2].map(()=>({m:SHAPES[rnd(SHAPES.length)],c:COLS[rnd(COLS.length)],used:false}))};
+    const place=(r,c)=>{
+      if(over||sel===null)return;
+      const p=tray[sel];if(!p||p.used)return;
+      const r0=r-Math.floor(p.m.length/2),c0=c-Math.floor(p.m[0].length/2);
+      if(!fitsAt(p.m,r0,c0))return;
+      p.m.forEach((row,i)=>row.forEach((v,j)=>{if(v)grid[r0+i][c0+j]=p.c}));
+      score+=p.m.flat().reduce((a,b)=>a+b,0);
+      p.used=true;sel=null;
+      const full=[];
+      for(let i=0;i<N;i++){if(grid[i].every(Boolean))full.push(['r',i]);}
+      for(let j=0;j<N;j++){if(grid.every(row=>row[j]))full.push(['c',j]);}
+      full.forEach(([t,i])=>{for(let k=0;k<N;k++){const rr=t==='r'?i:k,cc=t==='r'?k:i;grid[rr][cc]=''}});
+      if(full.length)score+=full.length*10*full.length;
+      if(tray.every(t=>t.used))newTray();
+      if(!tray.some(t=>!t.used&&canPlaceAny(t.m)))over=true;
+      draw();
+    };
+    const draw=()=>{
+      board.innerHTML='';
+      for(let r=0;r<N;r++)for(let c=0;c<N;c++){
+        const b=document.createElement('button');b.className='bcell';
+        if(grid[r][c]){b.style.background=grid[r][c];b.style.boxShadow='inset 0 0 0 2px rgba(255,255,255,.25)'}
+        b.onclick=()=>place(r,c);board.appendChild(b);
+      }
+      trayEl.innerHTML='';
+      tray.forEach((p,i)=>{
+        const d=document.createElement('div');
+        d.className='piece'+(sel===i?' sel':'')+(p.used?' used':'');
+        d.style.gridTemplateColumns=`repeat(${p.m[0].length},14px)`;
+        p.m.forEach(row=>row.forEach(v=>{const x=document.createElement('div');x.className='pc';x.style.background=v?p.c:'transparent';d.appendChild(x)}));
+        d.onclick=()=>{if(!p.used&&!over){sel=sel===i?null:i;draw()}};
+        trayEl.appendChild(d);
+      });
+      info.textContent=over?`Ходов больше нет. Очки: ${score}`:`Очки: ${score}${sel===null?' · Выбери фигуру снизу':' · Нажми клетку поля'}`;
+      if(over){const rb=btn(trayEl,'Новая игра',reset)}
+    };
+    const reset=()=>{grid=Array.from({length:N},()=>Array(N).fill(''));score=0;over=false;sel=null;newTray();draw()};
+    reset();
+    return()=>{};
+  }
+});
+
 // Игра «Арканоид». Файл появится на сайте сам, как только лежит в папке games/.
 // Функции rnd, cv, btn, msg, row, controls и registerGame берутся из lib.js.
 registerGame('breakout', {title:'Арканоид',cat:'Аркады',emoji:'🧱',desc:'Разбей все кирпичи платформой',start(el){
@@ -206,6 +305,126 @@ registerGame('clicker', {title:'Кликер',cat:'Кликеры',emoji:'🍪',
   return()=>clearInterval(t);
 }});
 
+// Флаппи: тапай или жми пробел, чтобы лететь между трубами.
+registerGame('flappy', {
+  title:'Флаппи', cat:'Аркады', emoji:'🐦', desc:'Тапай, чтобы лететь между трубами',
+  start(el){
+    const W=320,H=480,BX=80,BR=12,GAP=130;
+    const c=cv(el,W,H),g=c.getContext('2d');c.style.touchAction='none';
+    let by,vy,pipes,score,over,fr,started;
+    const reset=()=>{by=H/2;vy=0;pipes=[];score=0;over=false;fr=0;started=false};
+    reset();
+    const flap=()=>{if(over){reset();return}started=true;vy=-7};
+    c.onpointerdown=e=>{e.preventDefault();flap()};
+    const kd=e=>{if(e.key===' '||e.key==='ArrowUp'){e.preventDefault();flap()}};
+    addEventListener('keydown',kd);
+    const draw=()=>{
+      g.fillStyle='#0b0618';g.fillRect(0,0,W,H);
+      g.fillStyle='#22c55e';pipes.forEach(p=>{g.fillRect(p.x,0,40,p.top);g.fillRect(p.x,p.top+GAP,40,H-p.top-GAP)});
+      g.fillStyle='#facc15';g.beginPath();g.arc(BX,by,BR,0,7);g.fill();
+      g.fillStyle='#fff';g.font='bold 24px sans-serif';g.textAlign='center';g.fillText(String(score),W/2,40);
+      if(!started&&!over)g.fillText('Тапни, чтобы начать',W/2,H/2+60);
+      if(over){g.fillStyle='rgba(0,0,0,.6)';g.fillRect(0,0,W,H);g.fillStyle='#fff';g.font='bold 18px sans-serif';g.fillText('Конец. Тапни для новой игры',W/2,H/2)}
+      g.textAlign='left';
+    };
+    const t=setInterval(()=>{
+      if(over||!started){draw();return}
+      fr++;vy+=0.4;by+=vy;
+      if(fr%90===0)pipes.push({x:W,top:60+rnd(H-GAP-120),passed:false});
+      pipes.forEach(p=>p.x-=2.5);
+      pipes.forEach(p=>{if(!p.passed&&p.x+40<BX){p.passed=true;score++}});
+      pipes=pipes.filter(p=>p.x>-50);
+      if(by+BR>H||by-BR<0)over=true;
+      pipes.forEach(p=>{if(BX+BR>p.x&&BX-BR<p.x+40&&(by-BR<p.top||by+BR>p.top+GAP))over=true});
+      draw();
+    },16);
+    draw();
+    return()=>{clearInterval(t);removeEventListener('keydown',kd);c.onpointerdown=null};
+  }
+});
+
+// 2048: стрелками (или свайпом по полю) сдвигай плитки. Совпадающие числа складываются.
+registerGame('g2048', {
+  title:'2048', cat:'Головоломки', emoji:'2️⃣', desc:'Складывай одинаковые плитки до 2048',
+  start(el){
+    const N=4;
+    let g,score=0,over=false,won=false;
+    const info=msg(el,'');
+    const board=document.createElement('div');board.className='g2048';el.appendChild(board);
+    const COL={2:'#334155',4:'#475569',8:'#f97316',16:'#f59e0b',32:'#ef4444',64:'#dc2626',128:'#eab308',256:'#84cc16',512:'#22c55e',1024:'#06b6d4',2048:'#a855f7'};
+    const add=()=>{const e=[];g.forEach((row,r)=>row.forEach((v,c)=>{if(!v)e.push([r,c])}));if(!e.length)return;const[r,c]=e[rnd(e.length)];g[r][c]=Math.random()<0.9?2:4};
+    const canMove=()=>{for(let r=0;r<N;r++)for(let c=0;c<N;c++){const v=g[r][c];if(!v)return true;if(c+1<N&&g[r][c+1]===v)return true;if(r+1<N&&g[r+1][c]===v)return true}return false};
+    const slide=line=>{
+      const a=line.filter(Boolean),out=[];let gained=0;
+      for(let i=0;i<a.length;i++){if(a[i]&&a[i]===a[i+1]){out.push(a[i]*2);gained+=a[i]*2;i++}else out.push(a[i])}
+      while(out.length<N)out.push(0);
+      return{row:out,gained};
+    };
+    const move=dir=>{
+      if(over)return;
+      const pos=(i,j)=>{switch(dir){case 'left':return[i,j];case 'right':return[i,N-1-j];case 'up':return[j,i];default:return[N-1-j,i]}};
+      let moved=false;
+      for(let i=0;i<N;i++){
+        const line=[];for(let j=0;j<N;j++){const[r,c]=pos(i,j);line.push(g[r][c])}
+        const res=slide(line);
+        res.row.forEach((v,j)=>{const[r,c]=pos(i,j);if(g[r][c]!==v)moved=true;g[r][c]=v});
+        score+=res.gained;
+      }
+      if(moved)add();
+      if(!won&&g.flat().includes(2048)){won=true}
+      if(!canMove())over=true;
+      draw();
+    };
+    const draw=()=>{
+      board.innerHTML='';
+      g.flat().forEach(v=>{const t=document.createElement('div');t.className='tile';
+        if(v){t.textContent=v;t.style.background=COL[v]||'#7c3aed';t.style.fontSize=v>=1000?'18px':v>=100?'20px':'24px'}
+        else t.style.background='rgba(255,255,255,.04)';
+        board.appendChild(t)});
+      info.textContent=`Очки: ${score}`+(over?' · Ходов нет. Нажми «Заново»':won?' · Ты собрал 2048! Можно продолжать':'');
+    };
+    const reset=()=>{g=Array.from({length:N},()=>Array(N).fill(0));score=0;over=false;won=false;add();add();draw()};
+    const dirs={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down',a:'left',d:'right',w:'up',s:'down',A:'left',D:'right',W:'up',S:'down'};
+    const kd=e=>{const d=dirs[e.key];if(d){e.preventDefault();move(d)}};
+    addEventListener('keydown',kd);
+    const ctl=controls(el,(k,on)=>{if(on)move(k)});
+    let sx=0,sy=0;
+    board.addEventListener('pointerdown',e=>{sx=e.clientX;sy=e.clientY});
+    board.addEventListener('pointerup',e=>{const dx=e.clientX-sx,dy=e.clientY-sy;if(Math.max(Math.abs(dx),Math.abs(dy))<30)return;
+      if(Math.abs(dx)>Math.abs(dy))move(dx>0?'right':'left');else move(dy>0?'down':'up')});
+    const bar=row(el);btn(bar,'Заново',reset);
+    reset();
+    return()=>{removeEventListener('keydown',kd);ctl()};
+  }
+});
+
+// Угадай число: компьютер загадал число от 1 до 100, у тебя 7 попыток.
+registerGame('guess', {
+  title:'Угадай число', cat:'Логика', emoji:'🔢', desc:'Угадай число от 1 до 100 за 7 попыток',
+  start(el){
+    let x,a=0,over=false;
+    const info=msg(el,'');
+    const inp=document.createElement('input');inp.type='number';inp.inputMode='numeric';inp.placeholder='Твой вариант';
+    inp.style.cssText='width:200px;padding:10px;border-radius:12px;border:1px solid var(--line);background:#0b0618;color:var(--tx);font-size:18px;text-align:center';
+    el.appendChild(inp);
+    const go=()=>{
+      if(over||inp.value==='')return;
+      const v=+inp.value;a++;
+      if(v===x){over=true;info.textContent=`Угадал за ${a} попыток! Очки: ${Math.max(0,8-a)*15}`}
+      else if(a>=7){over=true;info.textContent=`Не угадал. Было ${x}`}
+      else info.textContent=(v<x?'Больше ⬆️':'Меньше ⬇️')+` · Осталось попыток: ${7-a}`;
+      inp.value='';inp.focus();
+    };
+    const reset=()=>{x=1+rnd(100);a=0;over=false;inp.value='';info.textContent='Загадано число от 1 до 100. Попыток: 7'};
+    inp.onkeydown=e=>{if(e.key==='Enter')go()};
+    const bar=row(el);
+    btn(bar,'Проверить',go,'big2');
+    btn(bar,'Заново',reset);
+    reset();
+    return()=>{};
+  }
+});
+
 // Трасса: едешь по дороге, объезжаешь машины и столбы стрелками ◀ ▶.
 registerGame('highway', {
   title:'Трасса', cat:'Аркады', emoji:'🏎️', desc:'Объезжай машины и столбы на трассе',
@@ -271,6 +490,120 @@ registerGame('highway', {
     },16);
     draw();
     return()=>{clearInterval(t);ctl()};
+  }
+});
+
+// Выключи свет: нажатие переключает лампу и соседние. Погаси все лампы.
+registerGame('lights', {
+  title:'Выключи свет', cat:'Головоломки', emoji:'💡', desc:'Погаси все лампы за минимум ходов',
+  start(el){
+    const N=5;
+    let g,moves=0;
+    const info=msg(el,'');
+    const board=document.createElement('div');board.className='mboard';
+    board.style.gridTemplateColumns=`repeat(${N},1fr)`;board.style.maxWidth='300px';el.appendChild(board);
+    const toggle=(r,c)=>{[[0,0],[1,0],[-1,0],[0,1],[0,-1]].forEach(([dr,dc])=>{const rr=r+dr,cc=c+dc;if(rr>=0&&cc>=0&&rr<N&&cc<N)g[rr][cc]=!g[rr][cc]})};
+    const won=()=>g.every(row=>row.every(v=>!v));
+    const draw=()=>{
+      board.innerHTML='';
+      g.forEach((row,r)=>row.forEach((on,c)=>{
+        const x=document.createElement('button');x.className='mcell';
+        x.style.background=on?'#facc15':'#1b0f33';x.style.boxShadow=on?'0 0 12px #facc15':'none';
+        x.onclick=()=>press(r,c);board.appendChild(x);
+      }));
+      info.textContent=won()?`Готово за ${moves} ходов!`:`Ходов: ${moves}`;
+    };
+    const press=(r,c)=>{if(won())return;toggle(r,c);moves++;draw()};
+    const reset=()=>{
+      g=Array.from({length:N},()=>Array(N).fill(false));moves=0;
+      // случайные нажатия от погашенного поля: такая позиция гарантированно решаема
+      for(let i=0;i<8;i++)toggle(rnd(N),rnd(N));
+      draw();
+    };
+    reset();
+    btn(el,'Новая',reset);
+    return()=>{};
+  }
+});
+
+// Математика: 10 примеров на время. Вводи ответ и жми Enter.
+registerGame('math', {
+  title:'Математика', cat:'Логика', emoji:'➗', desc:'Реши 10 примеров как можно быстрее',
+  start(el){
+    let q='',ans=0,i=10,ok=0,t0=0;
+    const info=msg(el,'Нажми «Старт»');
+    const qEl=document.createElement('div');qEl.style.cssText='font-size:32px;font-weight:900;margin:12px 0;text-align:center';el.appendChild(qEl);
+    const inp=document.createElement('input');inp.type='number';inp.inputMode='numeric';
+    inp.style.cssText='width:200px;padding:10px;border-radius:12px;border:1px solid var(--line);background:#0b0618;color:var(--tx);font-size:18px;text-align:center';
+    el.appendChild(inp);
+    const gen=()=>{const a=1+rnd(12),b=1+rnd(12),o=rnd(3);
+      return o===0?[`${a} + ${b}`,a+b]:o===1?[`${a*b} ÷ ${b}`,a]:[`${a} × ${b}`,a*b]};
+    const next=()=>{[q,ans]=gen();qEl.textContent=`${q} = ?`;inp.value='';inp.focus()};
+    const start=()=>{i=0;ok=0;t0=Date.now();next();info.textContent='Пример 1 из 10'};
+    const answer=()=>{
+      if(i>=10||inp.value==='')return;
+      if(+inp.value===ans)ok++;
+      i++;
+      if(i>=10){qEl.textContent='';info.textContent=`Верно: ${ok} из 10 · Время: ${((Date.now()-t0)/1000).toFixed(1)} с`;return}
+      info.textContent=`Пример ${i+1} из 10 · Верно: ${ok}`;next();
+    };
+    inp.onkeydown=e=>{if(e.key==='Enter')answer()};
+    const bar=row(el);
+    btn(bar,'Ответить',answer);
+    btn(bar,'Старт',start,'big2');
+    return()=>{};
+  }
+});
+
+// Лабиринт: найди выход (зелёный квадрат) стрелками. Каждый уровень — новый лабиринт.
+registerGame('maze', {
+  title:'Лабиринт', cat:'Головоломки', emoji:'🌀', desc:'Найди выход стрелками',
+  start(el){
+    const N=11,S=26,W=N*S,H=N*S;
+    const c=cv(el,W,H),g=c.getContext('2d');
+    const info=msg(el,'');
+    let walls,px,py,lvl=1;
+    const make=()=>{
+      const cells=Array.from({length:N},()=>Array.from({length:N},()=>({n:1,s:1,e:1,w:1,v:false})));
+      const stack=[[0,0]];cells[0][0].v=true;
+      while(stack.length){
+        const[x,y]=stack[stack.length-1];const nb=[];
+        if(y>0&&!cells[y-1][x].v)nb.push([x,y-1,'n','s']);
+        if(y<N-1&&!cells[y+1][x].v)nb.push([x,y+1,'s','n']);
+        if(x>0&&!cells[y][x-1].v)nb.push([x-1,y,'w','e']);
+        if(x<N-1&&!cells[y][x+1].v)nb.push([x+1,y,'e','w']);
+        if(!nb.length){stack.pop();continue}
+        const[nx,ny,d,od]=nb[rnd(nb.length)];
+        cells[y][x][d]=0;cells[ny][nx][od]=0;cells[ny][nx].v=true;stack.push([nx,ny]);
+      }
+      walls=cells;
+    };
+    const draw=()=>{
+      g.fillStyle='#0b0618';g.fillRect(0,0,W,H);
+      g.fillStyle='#22c55e';g.fillRect((N-1)*S+6,(N-1)*S+6,S-12,S-12);
+      g.strokeStyle='#a855f7';g.lineWidth=3;
+      for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+        const cl=walls[y][x],X=x*S,Y=y*S;g.beginPath();
+        if(cl.n){g.moveTo(X,Y);g.lineTo(X+S,Y)}
+        if(cl.s){g.moveTo(X,Y+S);g.lineTo(X+S,Y+S)}
+        if(cl.w){g.moveTo(X,Y);g.lineTo(X,Y+S)}
+        if(cl.e){g.moveTo(X+S,Y);g.lineTo(X+S,Y+S)}
+        g.stroke();
+      }
+      g.fillStyle='#22d3ee';g.beginPath();g.arc(px*S+S/2,py*S+S/2,S/3,0,7);g.fill();
+    };
+    const reset=()=>{make();px=0;py=0;info.textContent=`Уровень ${lvl} · Стрелками к зелёному квадрату`;draw()};
+    const dirs={up:['n',0,-1],down:['s',0,1],left:['w',-1,0],right:['e',1,0]};
+    const move=k=>{
+      if(!walls)return;
+      const[side,dx,dy]=dirs[k];
+      if(walls[py][px][side])return;
+      px+=dx;py+=dy;
+      if(px===N-1&&py===N-1){lvl++;reset()}else draw();
+    };
+    const ctl=controls(el,(k,on)=>{if(on)move(k)});
+    reset();
+    return()=>{ctl()};
   }
 });
 
@@ -349,6 +682,27 @@ registerGame('mines', {title:'Сапёр',cat:'Головоломки',emoji:'�
   init();
   return()=>{};
 }});
+
+// Крот: за 30 секунд бей кротов, которые появляются в ячейках.
+registerGame('mole', {
+  title:'Крот', cat:'Аркады', emoji:'🐹', desc:'Бей кротов за 30 секунд',
+  start(el){
+    const info=msg(el,'Нажми «Старт», бей кротов за 30 секунд');
+    const grid=document.createElement('div');grid.className='mole-grid';el.appendChild(grid);
+    const cells=[];
+    let score=0,left=30,active=-1,run=false,t=null,pt=null;
+    const render=()=>{info.textContent=`Очки: ${score} · Осталось: ${left} с`};
+    const pop=()=>{cells.forEach(c=>c.textContent='');active=rnd(9);cells[active].textContent='🐹'};
+    const hit=i=>{if(!run||active!==i)return;score++;active=-1;cells[i].textContent='💥';setTimeout(()=>{cells[i].textContent=''},200);render()};
+    for(let i=0;i<9;i++){const b=document.createElement('button');b.className='mcell';b.onclick=()=>hit(i);grid.appendChild(b);cells.push(b)}
+    const finish=()=>{run=false;clearInterval(t);clearInterval(pt);cells.forEach(c=>c.textContent='');info.textContent=`Время вышло! Очки: ${score}. Нажми «Старт»`};
+    const start=()=>{score=0;left=30;run=true;clearInterval(t);clearInterval(pt);pop();render();
+      t=setInterval(()=>{left--;if(left<=0){finish();return}render()},1000);
+      pt=setInterval(()=>{if(run)pop()},650)};
+    btn(el,'Старт',start,'big2');
+    return()=>{run=false;clearInterval(t);clearInterval(pt)};
+  }
+});
 
 // Игра «Пинг-понг». Файл появится на сайте сам, как только лежит в папке games/.
 // Функции rnd, cv, btn, msg, row, controls и registerGame берутся из lib.js.
@@ -559,6 +913,38 @@ registerGame('runner', {
   }
 });
 
+// Последовательность: продолжи числовой ряд. 5 рядов, вводи следующее число.
+registerGame('sequence', {
+  title:'Последовательность', cat:'Логика', emoji:'📶', desc:'Продолжи числовой ряд (5 рядов)',
+  start(el){
+    let ans=0,i=5,ok=0;
+    const info=msg(el,'Нажми «Старт»');
+    const qEl=document.createElement('div');qEl.style.cssText='font-size:26px;font-weight:900;margin:12px 0;text-align:center';el.appendChild(qEl);
+    const inp=document.createElement('input');inp.type='number';inp.inputMode='numeric';
+    inp.style.cssText='width:200px;padding:10px;border-radius:12px;border:1px solid var(--line);background:#0b0618;color:var(--tx);font-size:18px;text-align:center';
+    el.appendChild(inp);
+    const gen=()=>{
+      const t=rnd(3),s=1+rnd(9),d=2+rnd(6),r=2+rnd(2),k=[0,1,2,3,4,5];
+      const a=t===0?k.map(j=>s+d*j):t===1?k.map(j=>s*Math.pow(r,j)):k.map(j=>(s+j)*(s+j));
+      return[a.slice(0,5).join(', ')+', ...',a[5]];
+    };
+    const next=()=>{const g=gen();qEl.textContent=g[0];ans=g[1];inp.value='';inp.focus()};
+    const start=()=>{i=0;ok=0;next();info.textContent='Ряд 1 из 5'};
+    const answer=()=>{
+      if(i>=5||inp.value==='')return;
+      if(+inp.value===ans)ok++;
+      i++;
+      if(i>=5){qEl.textContent='';info.textContent=`Верно: ${ok} из 5`;return}
+      info.textContent=`Ряд ${i+1} из 5 · Верно: ${ok}`;next();
+    };
+    inp.onkeydown=e=>{if(e.key==='Enter')answer()};
+    const bar=row(el);
+    btn(bar,'Ответить',answer);
+    btn(bar,'Старт',start,'big2');
+    return()=>{};
+  }
+});
+
 // Игра «Саймон». Файл появится на сайте сам, как только лежит в папке games/.
 // Функции rnd, cv, btn, msg, row, controls и registerGame берутся из lib.js.
 registerGame('simon', {title:'Саймон',cat:'Головоломки',emoji:'🎵',desc:'Запомни и повтори последовательность',start(el){
@@ -677,6 +1063,71 @@ registerGame('stock', {title:'Фондовый рынок',cat:'Экономик
   return()=>clearInterval(timer);
 }});
 
+// Тетрис: фигуры падают, собирай полные линии. Стрелки или кнопки внизу. ▲ — поворот. Кнопка «Сброс» — мгновенно вниз.
+registerGame('tetris', {
+  title:'Тетрис', cat:'Головоломки', emoji:'🧱', desc:'Собирай полные линии из падающих фигур',
+  start(el){
+    const C=10,R=20,S=22;
+    const c=cv(el,C*S,R*S),g=c.getContext('2d');
+    const SH={I:[[1,1,1,1]],O:[[1,1],[1,1]],T:[[0,1,0],[1,1,1]],S:[[0,1,1],[1,1,0]],Z:[[1,1,0],[0,1,1]],J:[[1,0,0],[1,1,1]],L:[[0,0,1],[1,1,1]]};
+    const COL={I:'#22d3ee',O:'#fde047',T:'#a855f7',S:'#22c55e',Z:'#ef4444',J:'#3b82f6',L:'#f97316'};
+    const KEYS=Object.keys(SH);
+    let board,cur,nx,score,lines,over,timer=null,level=0;
+    const info=msg(el,'');
+    const rot=m=>m[0].map((_,i)=>m.map(r=>r[i]).reverse());
+    const fits=(m,x,y)=>m.every((row,i)=>row.every((v,j)=>!v||(x+j>=0&&x+j<C&&y+i<R&&(y+i<0||!board[y+i][x+j]))));
+    const newPiece=()=>{const k=nx;nx=KEYS[rnd(KEYS.length)];return{k,m:SH[k],x:Math.floor((C-SH[k][0].length)/2),y:-1}};
+    const draw=()=>{
+      g.fillStyle='#0b0618';g.fillRect(0,0,C*S,R*S);
+      g.strokeStyle='rgba(255,255,255,.04)';
+      for(let i=0;i<=C;i++){g.beginPath();g.moveTo(i*S,0);g.lineTo(i*S,R*S);g.stroke()}
+      for(let j=0;j<=R;j++){g.beginPath();g.moveTo(0,j*S);g.lineTo(C*S,j*S);g.stroke()}
+      board.forEach((row,r)=>row.forEach((k,cc)=>{if(k){g.fillStyle=COL[k];g.fillRect(cc*S+1,r*S+1,S-2,S-2)}}));
+      if(cur&&!over)cur.m.forEach((row,i)=>row.forEach((v,j)=>{if(v&&cur.y+i>=0){g.fillStyle=COL[cur.k];g.fillRect((cur.x+j)*S+1,(cur.y+i)*S+1,S-2,S-2)}}));
+      if(over){g.fillStyle='rgba(0,0,0,.65)';g.fillRect(0,0,C*S,R*S);g.fillStyle='#fff';g.textAlign='center';g.font='bold 18px sans-serif';
+        g.fillText('Игра окончена',C*S/2,R*S/2-6);g.fillText('Стрелка — новая игра',C*S/2,R*S/2+18);g.textAlign='left'}
+      info.textContent=`Очки: ${score} · Линии: ${lines} · Уровень: ${level+1} · Следующая: ${nx}`;
+    };
+    const startTimer=()=>{clearInterval(timer);timer=setInterval(()=>tickDown(),Math.max(90,520-level*45))};
+    const lock=()=>{
+      cur.m.forEach((row,i)=>row.forEach((v,j)=>{if(v&&cur.y+i>=0)board[cur.y+i][cur.x+j]=cur.k}));
+      let cleared=0;board=board.filter(r=>{const full=r.every(Boolean);if(full)cleared++;return!full});
+      while(board.length<R)board.unshift(Array(C).fill(''));
+      if(cleared){lines+=cleared;score+=[0,100,300,500,800][cleared]*(level+1);
+        const nl=Math.floor(lines/10);if(nl!==level){level=nl;startTimer()}}
+      cur=newPiece();
+      if(!fits(cur.m,cur.x,cur.y)){over=true;clearInterval(timer)}
+    };
+    const move=(dx,dy)=>{if(over||!cur)return false;if(fits(cur.m,cur.x+dx,cur.y+dy)){cur.x+=dx;cur.y+=dy;return true}return false};
+    const tickDown=()=>{if(over)return;if(!move(0,1))lock();draw()};
+    const rotate=()=>{if(over)return;const m=rot(cur.m);for(const kick of [0,-1,1,-2,2]){if(fits(m,cur.x+kick,cur.y)){cur.m=m;cur.x+=kick;break}}};
+    const hardDrop=()=>{if(over)return;let d=0;while(move(0,1))d++;score+=d*2;lock();draw()};
+    const reset=()=>{board=Array.from({length:R},()=>Array(C).fill(''));score=0;lines=0;level=0;over=false;nx=KEYS[rnd(KEYS.length)];cur=newPiece();startTimer();draw()};
+    const act=k=>{
+      if(over)return;
+      if(k==='left')move(-1,0);
+      if(k==='right')move(1,0);
+      if(k==='down'){if(move(0,1))score+=1;else lock()}
+      if(k==='up')rotate();
+      draw();
+    };
+    const rt={};
+    const press=(k,on)=>{
+      if(over){if(on)reset();return}
+      if(k==='up'){if(on)act(k);return}
+      if(!on){clearTimeout(rt[k]);clearInterval(rt[k+'i']);return}
+      act(k);
+      rt[k]=setTimeout(()=>{rt[k+'i']=setInterval(()=>act(k),70)},250);
+    };
+    const ctl=controls(el,press);
+    const bar=row(el);
+    btn(bar,'⬇ Сброс',()=>{if(over)reset();else hardDrop()});
+    btn(bar,'Заново',reset);
+    reset();
+    return()=>{clearInterval(timer);Object.keys(rt).forEach(k=>{clearTimeout(rt[k]);clearInterval(rt[k+'i']);});ctl()};
+  }
+});
+
 // Игра «Крестики-нолики». Файл появится на сайте сам, как только лежит в папке games/.
 // Функции rnd, cv, btn, msg, row, controls и registerGame берутся из lib.js.
 registerGame('ttt', {title:'Крестики-нолики',cat:'Настольные',emoji:'❌',desc:'Играй против ИИ',start(el){
@@ -719,7 +1170,7 @@ let cleanup=null, cat='Все', query='';
 
 // Запасной список на случай, если список файлов с GitHub не загрузился (например, офлайн).
 // Новые игры и так находятся сами через GitHub; этот список используется только как запасной.
-const FALLBACK_GAMES=['breakout','clicker','highway','memory','mines','pong','reaction','rhythm','runner','simon','snake','stock','ttt'];
+const FALLBACK_GAMES=['aim','blockblast','breakout','clicker','flappy','g2048','guess','highway','lights','math','maze','memory','mines','mole','pong','reaction','rhythm','runner','sequence','simon','snake','stock','tetris','ttt'];
 
 function repoInfo(){
   const host=location.hostname, parts=location.pathname.split('/').filter(Boolean);
